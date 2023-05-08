@@ -34,6 +34,11 @@ void platform_render(void)
     refresh();
 }
 
+void *platform_malloc(unsigned int size)
+{
+    return malloc(size);
+}
+
 int main(void)
 {
     WINDOW *pw;
@@ -48,9 +53,8 @@ int main(void)
     int curs_st = curs_set(0);    // hides the cursor
     int h, w;
     getmaxyx(pw, h, w);
-    srand(time(0));
 
-    game_init(w, h);
+    game_init(w, h, time(NULL));
     struct timespec start, end;
     int diff;
     clock_gettime(CLOCK_MONOTONIC, &start);

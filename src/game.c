@@ -1,8 +1,8 @@
-#include <stdlib.h>
-
 #include "./cell.h"
 #include "./game.h"
 #include "./platform.h"
+
+#define NULL    ((void*)0)
 
 #define RIGHT   6   // 0110
 #define LEFT    4   // 0100
@@ -12,6 +12,14 @@
 #define canchdir(d0,d1) (!(d0 & d1))
 #define dirtodx(dir)    ((dir & 3) - 1)
 #define dirtody(dir)    (((dir >> 2) & 3) - 1)
+
+#define RAND_MAX    0x7FFF
+static unsigned int rand_seed;
+static unsigned int rand(void)
+{
+    rand_seed = rand_seed * 1103515245 + 12345;
+    return (rand_seed >> 16) & RAND_MAX;
+}
 
 int randdir(void)
 {
@@ -32,7 +40,7 @@ int randdir(void)
 #define KEY_LEFT    260
 #define KEY_RIGHT   261
 
-int keytodir(wchar_t k)
+int keytodir(int k)
 {
     switch (k) {
         case KEY_UP:
@@ -63,7 +71,7 @@ struct part {
 
 struct part *snake_create_part(int x, int y)
 {
-    struct part *p = malloc(sizeof(struct part));
+    struct part *p = platform_malloc(sizeof(struct part));
     p->x = x;
     p->y = y;
     p->next = NULL;
@@ -82,8 +90,9 @@ int snake_hit_test(struct part *tail, int x, int y)
 int width, height, dir, newdir, dx, dy, fdx, fdy;
 struct part *head, *tail;
 
-void game_init(int w, int h)
+void game_init(int w, int h, int seed)
 {
+    rand_seed = seed;
     width = w;
     height = h;
     dir = randdir();
