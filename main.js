@@ -1,6 +1,6 @@
-const CELL_SIZE = 24;
-const NUM_CELLS = 40;
-const CANV_SIZE = CELL_SIZE * NUM_CELLS;
+const CANV_SIZE = 640;
+const NUM_CELLS = 20;
+const CELL_SIZE = CANV_SIZE / NUM_CELLS;
 
 function toCellColor(x, y) {
     return (x + y) % 2 ? "#181818FF" : "#183018FF";
@@ -9,6 +9,13 @@ function toCellColor(x, y) {
 function fillCell(ctx, color, x, y) {
     ctx.fillStyle = color;
     ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+}
+
+function drawGameOver(ctx) {
+    ctx.font = `bold 48px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.fillStyle = "white";
+    ctx.fillText("GAME OVER", CANV_SIZE / 2, CANV_SIZE / 2 + 20); // manually chosen offset
 }
 
 const canvas = document.getElementById("viewport");
@@ -28,10 +35,10 @@ function platform_draw_cell(x, y, cellType) {
             color = toCellColor(x, y);
             break;
         case 1:
-            color = "yellow";
+            color = "green";
             break;
         case 2:
-            color = "red";
+            color = "yellow";
             break;
         default:
             throw new Error(`Not supported cell type: ${cellType}`);
@@ -39,18 +46,15 @@ function platform_draw_cell(x, y, cellType) {
     fillCell(ctx, color, x, y);
 }
 
-const wasmMemory = new WebAssembly.Memory({
-    initial: 10,
-    maximum: 100,
-});
-let mallocNext = 0;
+const wasmMemory = new WebAssembly.Memory({ initial: 2 });
+let nextFree = 0x10000;
 
 function platform_malloc(size) {
-    size = (size + 3) & (~3);
-    if (mallocNext + size > wasmMemory.buffer.byteLength)
+    size = (size + 3) & (~3); // 4-byte aling
+    if (nextFree + size > wasmMemory.buffer.byteLength)
         return 0;
-    mallocNext += size;
-    return mallocNext - size;
+    nextFree += size;
+    return nextFree - size;
 }
 
 WebAssembly.instantiateStreaming(fetch("bin/snake.wasm"), {
@@ -71,8 +75,9 @@ WebAssembly.instantiateStreaming(fetch("bin/snake.wasm"), {
     function loop(timestamp) {
         if (prev) {
             const diff = Math.round(timestamp - prev);
+            // game_update returns 0 on successful advance of game state; otherwise 1
             if (w.instance.exports.game_update(diff)) {
-                console.log("GAME OVER");
+                drawGameOver(ctx);
                 return;
             }
         }
