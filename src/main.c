@@ -110,13 +110,13 @@ int main(void)
         mvaddch(tail->y, tail->x, ' ');
         x = head->x + dx;
         y = head->y + dy;
-        if (x == 0)
+        if (x < 0)
             x = w - 1;
-        else if (x == w)
+        else if (x >= w)
             x = 0;
-        else if (y == 0)
+        else if (y < 0)
             y = h - 1;
-        else if (y == h)
+        else if (y >= h)
             y = 0;
 
         if (x == fdx && y == fdy) {
