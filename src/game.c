@@ -97,17 +97,32 @@ void game_init(int w, int h)
     platform_render();
 }
 
+#define GAME_TICK       20
+#define MAX_INTERVAL    (50 * GAME_TICK)
+static long elapsed = 0, last_render = 0;
+static int interval = 3 * GAME_TICK;
+
 void game_handle_key(int c)
 {
-    if ((newdir = keytodir(c)) >= 0 && canchdir(dir, newdir)) {
-        dir = newdir;
-        dx = dirtodx(dir);
-        dy = dirtody(dir);
+    if ((newdir = keytodir(c)) >= 0) {
+        if (canchdir(dir, newdir)) {
+            dir = newdir;
+            dx = dirtodx(dir);
+            dy = dirtody(dir);
+        }
+    } else if (c == '[') {
+        if (interval < MAX_INTERVAL)
+            interval += GAME_TICK;
+    } else if (c == ']') {
+        if (interval > GAME_TICK)
+            interval -= GAME_TICK;
     }
 }
 
-int game_update(void)
+int game_update(int dt)
 {
+    if ((elapsed += dt) - last_render < interval)
+        return 0;
     platform_draw_cell(tail->x, tail->y, CELL_EMPTY);
     int x = head->x + dx;
     int y = head->y + dy;
@@ -143,5 +158,6 @@ int game_update(void)
     }
     platform_draw_cell(head->x, head->y, CELL_SNAKE);
     platform_render();
+    last_render = elapsed;
     return 0;
 }

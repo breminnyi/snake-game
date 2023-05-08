@@ -51,13 +51,19 @@ int main(void)
     srand(time(0));
 
     game_init(w, h);
+    struct timespec start, end;
+    int diff;
+    clock_gettime(CLOCK_MONOTONIC, &start);
     while (1) {
         wchar_t c;
         if ((c = wgetch(pw)) != ERR)
             game_handle_key(c);
-        if (game_update())
+        clock_gettime(CLOCK_MONOTONIC, &end);
+        diff = (end.tv_sec - start.tv_sec) * 1000 + (end.tv_nsec - start.tv_nsec) / 1000000;
+        if (game_update(diff))
             break;
-        usleep(80000);
+        start = end;
+        usleep(1000); // throttling
     }
     if (curs_st != ERR)
         curs_set(1);
