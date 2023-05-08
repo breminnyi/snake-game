@@ -56,7 +56,7 @@ struct part {
     struct part *next;
 };
 
-struct part *createpart(int x, int y)
+struct part *snake_create_part(int x, int y)
 {
     struct part *p = malloc(sizeof(struct part));
     p->x = x;
@@ -65,13 +65,28 @@ struct part *createpart(int x, int y)
     return p;
 }
 
-int snakehittest(struct part *tail, int x, int y)
+int snake_hit_test(struct part *tail, int x, int y)
 {
     for (; tail->next; tail = tail->next) {
         if (tail->x == x && tail->y == y)
             return 1;
     }
     return 0;
+}
+
+void pltf_draw_empty(int x, int y)
+{
+    mvaddch(y, x, ' ');
+}
+
+void pltf_draw_snake(int x, int y)
+{
+    mvaddch(y, x, '0');
+}
+
+void pltf_draw_food(int x, int y)
+{
+    mvaddch(y, x, '*');
 }
 
 int main(void)
@@ -91,13 +106,13 @@ int main(void)
     getmaxyx(pw, h, w);
     int dir = RIGHT, newdir;
     struct part *head, *tail, *tmp;
-    head = tail = createpart(rand() % w, rand() % h);
+    head = tail = snake_create_part(rand() % w, rand() % h);
     for (tmp = tail; tmp != NULL; tmp = tmp->next) {
-        mvaddch(tmp->y, tmp->x, '0');
+        pltf_draw_snake(tmp->x, tmp->y);
         head = tmp;
     }
     int fdx = rand() % w, fdy = rand() % h;
-    mvaddch(fdy, fdx, '*');
+    pltf_draw_food(fdx, fdy);
     refresh();
     int x, y, dx = dirtodx(dir), dy = dirtody(dir);
     wchar_t c;
@@ -107,7 +122,7 @@ int main(void)
             dx = dirtodx(dir);
             dy = dirtody(dir);
         }
-        mvaddch(tail->y, tail->x, ' ');
+        pltf_draw_empty(tail->x, tail->y);
         x = head->x + dx;
         y = head->y + dy;
         if (x < 0)
@@ -120,13 +135,13 @@ int main(void)
             y = 0;
 
         if (x == fdx && y == fdy) {
-            head->next = createpart(x, y);
+            head->next = snake_create_part(x, y);
             head = head->next;
-            while (snakehittest(tail, fdx = rand() % w, fdy = rand() % h))
+            while (snake_hit_test(tail, fdx = rand() % w, fdy = rand() % h))
                 ;
-            mvaddch(fdy, fdx, '*');
+            pltf_draw_food(fdx, fdy);
         } else {
-            mvaddch(tail->y, tail->y, ' ');
+            pltf_draw_empty(tail->x, tail->y);
             if (head != tail) {
                 tmp = tail;
                 tail = tail->next;
@@ -137,7 +152,7 @@ int main(void)
             head->x = x;
             head->y = y;
         }
-        mvaddch(head->y, head->x, '0');
+        pltf_draw_snake(head->x, head->y);
 
         refresh();
         usleep(80000);
