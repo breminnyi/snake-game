@@ -8,7 +8,7 @@ SRC_FILES=$(wildcard $(SRC_DIR)/*.c)
 BIN_DIR = bin
 DEBUG_BIN=$(BIN_DIR)/debug/snake
 RELEASE_BIN = $(BIN_DIR)/release/snake
-WASM_BIN = $(BIN_DIR)/snake.wasm
+WASM_BIN = dist/snake.wasm
 
 .PHONY = all debug release clean wasm
 
@@ -36,4 +36,4 @@ $(WASM_BIN): $(SRC_DIR)/game.c
 	clang $(CFLAGS) --target=wasm32 --no-standard-libraries -Wl,--no-entry -Wl,--allow-undefined -Wl,--export=game_init -Wl,--export=game_handle_key -Wl,--export=game_update -o $@ $^
 
 clean:
-	rm -rf $(BIN_DIR)
+	rm -rf $(BIN_DIR) $(WASM_BIN)

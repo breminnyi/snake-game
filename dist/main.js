@@ -46,7 +46,7 @@ function platform_draw_cell(x, y, cellType) {
     fillCell(ctx, color, x, y);
 }
 
-WebAssembly.instantiateStreaming(fetch("bin/snake.wasm"), {
+WebAssembly.instantiateStreaming(fetch("snake.wasm"), {
     env: {
         platform_draw_cell,
     }
