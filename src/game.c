@@ -21,7 +21,7 @@ static unsigned int rand(void)
     return (rand_seed >> 16) & RAND_MAX;
 }
 
-int randdir(void)
+static int randdir(void)
 {
     switch (rand() & 3) {
         case 0:
@@ -40,7 +40,7 @@ int randdir(void)
 #define KEY_LEFT    260
 #define KEY_RIGHT   261
 
-int keytodir(int k)
+static int key_to_dir(int k)
 {
     switch (k) {
         case KEY_UP:
@@ -69,7 +69,21 @@ struct part {
     struct part *next;
 };
 
-struct part *snake_create_part(int x, int y)
+#define MIN_INTERVAL    10
+#define MAX_INTERVAL    640
+
+// Game state
+static int width, height;
+static int dir;
+static int foodx, foody;
+static struct part *head, *tail;
+static long elapsed = 0, last_render = 0;
+static int interval = 80;
+
+#define randx() (rand() % width)
+#define randy() (rand() % height)
+
+static struct part *create_part(int x, int y)
 {
     struct part *p = platform_malloc(sizeof(struct part));
     p->x = x;
@@ -78,17 +92,13 @@ struct part *snake_create_part(int x, int y)
     return p;
 }
 
-int snake_hit_test(struct part *tail, int x, int y)
+static int hit_test(struct part *tail, int x, int y)
 {
-    for (; tail->next; tail = tail->next) {
+    for (; tail->next != NULL; tail = tail->next)
         if (tail->x == x && tail->y == y)
             return 1;
-    }
     return 0;
 }
-
-int width, height, dir, newdir, dx, dy, fdx, fdy;
-struct part *head, *tail;
 
 void game_init(int w, int h, int seed)
 {
@@ -96,35 +106,26 @@ void game_init(int w, int h, int seed)
     width = w;
     height = h;
     dir = randdir();
-    dx = dirtodx(dir);
-    dy = dirtody(dir);
-    head = tail = snake_create_part(rand() % width, rand() % height);
+    head = tail = create_part(randx(), randy());
     platform_draw_cell(head->x, head->y, CELL_SNAKE);
-    while (snake_hit_test(tail, fdx = rand() % width, fdy = rand() % height))
+    while (hit_test(tail, foodx = randx(), foody = randy()))
         ;
-    platform_draw_cell(fdx, fdy, CELL_FOOD);
+    platform_draw_cell(foodx, foody, CELL_FOOD);
     platform_render();
 }
 
-#define GAME_TICK       20
-#define MAX_INTERVAL    (50 * GAME_TICK)
-static long elapsed = 0, last_render = 0;
-static int interval = 3 * GAME_TICK;
-
 void game_handle_key(int c)
 {
-    if ((newdir = keytodir(c)) >= 0) {
-        if (canchdir(dir, newdir)) {
+    int newdir = key_to_dir(c);
+    if ((newdir) >= 0) {
+        if (canchdir(dir, newdir))
             dir = newdir;
-            dx = dirtodx(dir);
-            dy = dirtody(dir);
-        }
     } else if (c == '[') {
         if (interval < MAX_INTERVAL)
-            interval += GAME_TICK;
+            interval <<= 1;
     } else if (c == ']') {
-        if (interval > GAME_TICK)
-            interval -= GAME_TICK;
+        if (interval > MIN_INTERVAL)
+            interval >>= 1;
     }
 }
 
@@ -133,8 +134,8 @@ int game_update(int dt)
     if ((elapsed += dt) - last_render < interval)
         return 0;
     platform_draw_cell(tail->x, tail->y, CELL_EMPTY);
-    int x = head->x + dx;
-    int y = head->y + dy;
+    int x = head->x + dirtodx(dir);
+    int y = head->y + dirtody(dir);
     if (x < 0)
         x = width - 1;
     else if (x >= width)
@@ -144,14 +145,14 @@ int game_update(int dt)
     else if (y >= height)
         y = 0;
 
-    if (x == fdx && y == fdy) {
-        head->next = snake_create_part(x, y);
+    if (x == foodx && y == foody) {
+        head->next = create_part(x, y);
         head = head->next;
-        while (snake_hit_test(tail, fdx = rand() % width, fdy = rand() % height))
+        while (hit_test(tail, foodx = randx(), foody = randy()))
             ;
-        platform_draw_cell(fdx, fdy, CELL_FOOD);
+        platform_draw_cell(foodx, foody, CELL_FOOD);
     } else {
-        if (snake_hit_test(tail, x, y))
+        if (hit_test(tail, x, y))
             return 1;
 
         platform_draw_cell(tail->x, tail->y, CELL_EMPTY);
