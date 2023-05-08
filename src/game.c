@@ -8,9 +8,9 @@
 #define UP      1   // 0001
 #define DOWN    9   // 1001
 
-#define canchdir(d0,d1) (!(d0 & d1))
-#define dirtodx(dir)    ((dir & 3) - 1)
-#define dirtody(dir)    (((dir >> 2) & 3) - 1)
+#define CAN_CHANGE_DIR(d0,d1)   (!((d0) & (d1)))
+#define DIR_TO_DX(d)            (((d) & 3) - 1)
+#define DIR_TO_DY(d)            ((((d) >> 2) & 3) - 1)
 
 #define RAND_MAX    0x7FFF
 static unsigned int rand_seed;
@@ -73,7 +73,7 @@ struct part {
 
 // Game state
 static int width, height;
-static int dir;
+static int cur_dir, new_dir;
 static int foodx, foody;
 static struct part *head, *tail;
 static long elapsed = 0, last_render = 0;
@@ -104,7 +104,7 @@ void game_init(int w, int h, int seed)
     rand_seed = seed;
     width = w;
     height = h;
-    dir = randdir();
+    cur_dir = new_dir = randdir();
     head = tail = create_part(randx(), randy());
     platform_draw_cell(head->x, head->y, CELL_SNAKE);
     while (hit_test(tail, foodx = randx(), foody = randy()))
@@ -115,10 +115,10 @@ void game_init(int w, int h, int seed)
 
 void game_handle_key(int c)
 {
-    int newdir = key_to_dir(c);
-    if ((newdir) >= 0) {
-        if (canchdir(dir, newdir))
-            dir = newdir;
+    int dir = key_to_dir(c);
+    if ((dir) >= 0) {
+        if (CAN_CHANGE_DIR(cur_dir, dir))
+            new_dir = dir;
     } else if (c == '[') {
         if (interval < MAX_INTERVAL)
             interval <<= 1;
@@ -133,8 +133,8 @@ int game_update(int dt)
     if ((elapsed += dt) - last_render < interval)
         return 0;
     platform_draw_cell(tail->x, tail->y, CELL_EMPTY);
-    int x = head->x + dirtodx(dir);
-    int y = head->y + dirtody(dir);
+    int x = head->x + DIR_TO_DX(cur_dir = new_dir);
+    int y = head->y + DIR_TO_DY(cur_dir);
     if (x < 0)
         x = width - 1;
     else if (x >= width)
