@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-Wall -Wextra -pedantic -ggdb
 LIBS=-lncurses
-SRC=src/main.c
+SRC=src/*.c
 BIN=snake
 
 $(BIN): $(SRC)
