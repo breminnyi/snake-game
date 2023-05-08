@@ -5,11 +5,10 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "./cell.h"
 #include "./game.h"
 #include "./platform.h"
 
-int cell_type_to_char(int type)
+int cell_type_to_char(cell_type type)
 {
     switch(type) {
         case CELL_EMPTY:
@@ -24,9 +23,9 @@ int cell_type_to_char(int type)
     }
 }
 
-void platform_draw_cell(int x, int y, int cell_type)
+void platform_draw_cell(int x, int y, cell_type ct)
 {
-    mvaddch(y, x, cell_type_to_char(cell_type));
+    mvaddch(y, x, cell_type_to_char(ct));
 }
 
 void platform_render(void)
