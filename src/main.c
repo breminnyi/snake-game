@@ -25,18 +25,22 @@ int cell_type_to_char(cell_type type)
 
 void platform_draw_cell(int x, int y, cell_type ct)
 {
-    mvaddch(y, x, cell_type_to_char(ct));
+    mvaddch(y + 1, x + 1, cell_type_to_char(ct));
 }
 
-void platform_render(void)
+static void draw_borders(int w, int h)
 {
-    refresh();
+    for (int x = 0; x < w; x++) {
+        mvaddch(0, x, '-');
+        mvaddch(h - 1, x, '-');
+    }
+    for (int y = 0; y < h; y++) {
+        mvaddch(y, 0, '|');
+        mvaddch(y, w - 1, '|');
+    }
 }
 
-void *platform_malloc(unsigned int size)
-{
-    return malloc(size);
-}
+#define MIN(A, B)   ({ typeof(A) _a = (A); typeof(B) _b = (B); _a < _b ? _a : _b; })
 
 int main(void)
 {
@@ -52,21 +56,28 @@ int main(void)
     int curs_st = curs_set(0);    // hides the cursor
     int h, w;
     getmaxyx(pw, h, w);
+    h = MIN(h, 32 + 2); // 32x32 and borders
+    w = MIN(w, 32 + 2);
+    draw_borders(w, h);
+    refresh();
 
-    game_init(w, h, time(NULL));
-    struct timespec start, end;
-    int diff;
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    while (1) {
-        wchar_t c;
-        if ((c = wgetch(pw)) != ERR)
-            game_handle_key(c);
-        clock_gettime(CLOCK_MONOTONIC, &end);
-        diff = (end.tv_sec - start.tv_sec) * 1000 + (end.tv_nsec - start.tv_nsec) / 1000000;
-        if (game_update(diff))
-            break;
-        start = end;
-        usleep(1000); // throttling
+    if (game_init(w - 2, h - 2, time(NULL))) {
+        struct timespec start, end;
+        int diff;
+        clock_gettime(CLOCK_MONOTONIC, &start);
+        while (1) {
+            wchar_t c;
+            if ((c = wgetch(pw)) != ERR)
+                game_handle_key(c);
+            clock_gettime(CLOCK_MONOTONIC, &end);
+            diff = (end.tv_sec - start.tv_sec) * 1000 + (end.tv_nsec - start.tv_nsec) / 1000000;
+            if (!game_update(diff))
+                // TODO: print GAME OVER in the middle of a screen
+                break;
+            refresh();
+            start = end;
+            usleep(1000); // throttling
+        }
     }
     if (curs_st != ERR)
         curs_set(1);

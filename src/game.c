@@ -62,10 +62,10 @@ static int key_to_dir(int k)
     return -1;
 }
 
-struct part {
+struct Part {
     int x;
     int y;
-    struct part *next;
+    struct Part *next;
 };
 
 #define MIN_INTERVAL    10
@@ -75,23 +75,34 @@ struct part {
 static int width, height;
 static int cur_dir, new_dir;
 static int foodx, foody;
-static struct part *head, *tail;
+static struct Part *head, *tail;
 static long elapsed = 0, last_render = 0;
 static int interval = 80;
 
 #define randx() (rand() % width)
 #define randy() (rand() % height)
 
-static struct part *create_part(int x, int y)
+#define MAXCELLS    1024
+static struct Part parts[MAXCELLS];
+static struct Part *partsp = parts;
+
+static struct Part *alloc_part(void)
 {
-    struct part *p = platform_malloc(sizeof(struct part));
-    p->x = x;
-    p->y = y;
-    p->next = NULL;
+    return (partsp >= parts + MAXCELLS) ? NULL : partsp++;
+}
+
+static struct Part *create_part(int x, int y)
+{
+    struct Part *p = alloc_part();
+    if (p != NULL) {
+        p->x = x;
+        p->y = y;
+        p->next = NULL;
+    }
     return p;
 }
 
-static int hit_test(struct part *tail, int x, int y)
+static int hit_test(struct Part *tail, int x, int y)
 {
     for (; tail->next != NULL; tail = tail->next)
         if (tail->x == x && tail->y == y)
@@ -99,18 +110,21 @@ static int hit_test(struct part *tail, int x, int y)
     return 0;
 }
 
-void game_init(int w, int h, int seed)
+int game_init(int w, int h, int seed)
 {
+    if (w * h > MAXCELLS)
+        return 0;
     rand_seed = seed;
     width = w;
     height = h;
     cur_dir = new_dir = randdir();
-    head = tail = create_part(randx(), randy());
+    if ((head = tail = create_part(randx(), randy())) == NULL)
+        return 0;
     platform_draw_cell(head->x, head->y, CELL_SNAKE);
     while (hit_test(tail, foodx = randx(), foody = randy()))
         ;
     platform_draw_cell(foodx, foody, CELL_FOOD);
-    platform_render();
+    return 1;
 }
 
 void game_handle_key(int c)
@@ -131,7 +145,7 @@ void game_handle_key(int c)
 int game_update(int dt)
 {
     if ((elapsed += dt) - last_render < interval)
-        return 0;
+        return 1;
     platform_draw_cell(tail->x, tail->y, CELL_EMPTY);
     int x = head->x + DIR_TO_DX(cur_dir = new_dir);
     int y = head->y + DIR_TO_DY(cur_dir);
@@ -145,18 +159,19 @@ int game_update(int dt)
         y = 0;
 
     if (x == foodx && y == foody) {
-        head->next = create_part(x, y);
+        if ((head->next = create_part(x, y)) == NULL)
+            return 0;
         head = head->next;
         while (hit_test(tail, foodx = randx(), foody = randy()))
             ;
         platform_draw_cell(foodx, foody, CELL_FOOD);
     } else {
         if (hit_test(tail, x, y))
-            return 1;
+            return 0;
 
         platform_draw_cell(tail->x, tail->y, CELL_EMPTY);
         if (head != tail) {
-            struct part *tmp = tail;
+            struct Part *tmp = tail;
             tail = tail->next;
             tmp->next = NULL;
             head->next = tmp;
@@ -166,7 +181,6 @@ int game_update(int dt)
         head->y = y;
     }
     platform_draw_cell(head->x, head->y, CELL_SNAKE);
-    platform_render();
     last_render = elapsed;
-    return 0;
+    return 1;
 }

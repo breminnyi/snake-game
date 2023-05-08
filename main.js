@@ -46,28 +46,13 @@ function platform_draw_cell(x, y, cellType) {
     fillCell(ctx, color, x, y);
 }
 
-const wasmMemory = new WebAssembly.Memory({ initial: 2 });
-let nextFree = 0x10000;
-
-function platform_malloc(size) {
-    size = (size + 3) & (~3); // 4-byte aling
-    if (nextFree + size > wasmMemory.buffer.byteLength)
-        return 0;
-    nextFree += size;
-    return nextFree - size;
-}
-
 WebAssembly.instantiateStreaming(fetch("bin/snake.wasm"), {
-    js: {
-        mem: wasmMemory
-    },
     env: {
         platform_draw_cell,
-        platform_render: () => {},
-        platform_malloc
     }
 }).then(w => {
-    w.instance.exports.game_init(NUM_CELLS, NUM_CELLS, new Date().getTime());
+    if (!w.instance.exports.game_init(NUM_CELLS, NUM_CELLS, new Date().getTime()))
+        throw new Error("game initialization failed");
     document.addEventListener("keydown", (e) => {
         w.instance.exports.game_handle_key(e.key.charCodeAt());
     });
@@ -75,8 +60,7 @@ WebAssembly.instantiateStreaming(fetch("bin/snake.wasm"), {
     function loop(timestamp) {
         if (prev) {
             const diff = Math.round(timestamp - prev);
-            // game_update returns 0 on successful advance of game state; otherwise 1
-            if (w.instance.exports.game_update(diff)) {
+            if (!w.instance.exports.game_update(diff)) {
                 drawGameOver(ctx);
                 return;
             }

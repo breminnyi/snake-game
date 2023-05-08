@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -Wextra -pedantic
+CFLAGS=-Wall -Wextra
 DEBUG_FLAGS = -ggdb -DDEBUG -O0
 RELEASE_FLAGS = -O2
 LIBS=-lncurses
