@@ -1,4 +1,4 @@
-CC=gcc
+CC=clang
 CFLAGS=-Wall -Wextra
 DEBUG_FLAGS = -ggdb -DDEBUG -O0
 RELEASE_FLAGS = -O2
@@ -33,7 +33,7 @@ $(RELEASE_BIN): $(SRC_FILES)
 
 $(WASM_BIN): $(SRC_DIR)/game.c
 	@mkdir -p $(@D)
-	clang $(CFLAGS) --target=wasm32 --no-standard-libraries -Wl,--no-entry -Wl,--allow-undefined -Wl,--export=game_init -Wl,--export=game_handle_key -Wl,--export=game_update -o $@ $^
+	$(CC) $(CFLAGS) --target=wasm32 --no-standard-libraries -Wl,--no-entry -Wl,--allow-undefined -Wl,--export=game_init -Wl,--export=game_handle_key -Wl,--export=game_update -o $@ $^
 
 clean:
 	rm -rf $(BIN_DIR) $(WASM_BIN)
