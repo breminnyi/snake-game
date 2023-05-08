@@ -104,14 +104,13 @@ int main(void)
     int curs_st = curs_set(0);    // hides the cursor
     int w, h;
     getmaxyx(pw, h, w);
-    int dir = RIGHT, newdir;
+    int dir = randdir(), newdir;
     struct part *head, *tail, *tmp;
     head = tail = snake_create_part(rand() % w, rand() % h);
-    for (tmp = tail; tmp != NULL; tmp = tmp->next) {
-        pltf_draw_snake(tmp->x, tmp->y);
-        head = tmp;
-    }
-    int fdx = rand() % w, fdy = rand() % h;
+    pltf_draw_snake(head->x, head->y);
+    int fdx, fdy;
+    while (snake_hit_test(tail, fdx = rand() % w, fdy = rand() % h))
+        ;
     pltf_draw_food(fdx, fdy);
     refresh();
     int x, y, dx = dirtodx(dir), dy = dirtody(dir);
@@ -141,6 +140,9 @@ int main(void)
                 ;
             pltf_draw_food(fdx, fdy);
         } else {
+            if (snake_hit_test(tail, x, y))
+                break;
+
             pltf_draw_empty(tail->x, tail->y);
             if (head != tail) {
                 tmp = tail;
@@ -160,5 +162,6 @@ int main(void)
     if (curs_st != ERR)
         curs_set(1);
     endwin();
+    printf("GAME OVER\n");
     return 0;
 }
